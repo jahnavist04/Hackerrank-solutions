@@ -1,0 +1,76 @@
+# ──────────────────────────────────────────────────
+# Link        https://www.hackerrank.com/challenges/predicting-office-space-price/problem?isFullScreen=true
+# Problem     Polynomial Regression: Office Prices
+# Difficulty  Easy
+# Subdomain   Statistics and Machine Learning
+# Platform    HackerRank
+# Language    pypy3
+# Status      Accepted
+# Submitted   2026-10-29, 08:16 p.m.
+# ──────────────────────────────────────────────────
+
+
+import sys
+from itertools import combinations_with_replacement
+
+data = iter(sys.stdin.read().split())
+
+F = int(next(data))
+N = int(next(data))
+
+X, y = [], []
+
+for _ in range(N):
+    row = [float(next(data)) for _ in range(F + 1)]
+    X.append(row[:F])
+    y.append(row[F])
+
+T = int(next(data))
+test = [[float(next(data)) for _ in range(F)] for _ in range(T)]
+
+powers = [()]
+for degree in range(1, 4):
+    powers.extend(combinations_with_replacement(range(F), degree))
+
+def features(row):
+    result = [1.0]
+    for p in powers[1:]:
+        v = 1.0
+        for i in p:
+            v *= row[i]
+        result.append(v)
+    return result
+
+A = [features(row) for row in X]
+B = [features(row) for row in test]
+
+m = len(A[0])
+mat = []
+
+for j in range(m):
+    mat.append([
+        sum(row[j] * row[k] for row in A)
+        for k in range(m)
+    ] + [sum(A[i][j] * y[i] for i in range(N))])
+
+for i in range(m):
+    pivot = max(range(i, m), key=lambda r: abs(mat[r][i]))
+    mat[i], mat[pivot] = mat[pivot], mat[i]
+
+    if abs(mat[i][i]) < 1e-10:
+        mat[i][i] += 1e-8
+
+    div = mat[i][i]
+    for j in range(i, m + 1):
+        mat[i][j] /= div
+
+    for r in range(m):
+        if r != i:
+            factor = mat[r][i]
+            for j in range(i, m + 1):
+                mat[r][j] -= factor * mat[i][j]
+
+coef = [mat[i][m] for i in range(m)]
+
+for row in B:
+    print(f"{sum(a * b for a, b in zip(row, coef)):.2f}")
